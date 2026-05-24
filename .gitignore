@@ -18,6 +18,7 @@ logs
 .fleet
 .idea
 .vscode
+.claude
 *.tsbuildinfo
 
 # Local env files
