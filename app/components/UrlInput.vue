@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Download, Search } from 'lucide-vue-next'
+import { Download, Search } from '@lucide/vue'
 
 const modelValue = defineModel<string>({ required: true })
 const urlFilter = defineModel<string>('filter', { default: '' })

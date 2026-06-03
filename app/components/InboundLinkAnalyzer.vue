@@ -8,7 +8,7 @@ import {
   Loader,
   Network,
   Table as TableIcon,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import type { InboundLink } from '../composables/useInboundAggregation'
 import GraphView from './GraphView.vue'
 import InboundGroupedView from './InboundGroupedView.vue'

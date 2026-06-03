@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Camera, Check, FileText, Image, Loader, X } from 'lucide-vue-next'
+import { Camera, Check, FileText, Image, Loader, X } from '@lucide/vue'
 
 interface ScreenshotResult {
   url: string

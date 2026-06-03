@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { ChevronDown, ChevronRight } from '@lucide/vue'
 
 const props = defineProps<{ tabId: string }>()
 const key = `url-tools.advanced.${props.tabId}`

@@ -7,7 +7,7 @@ import {
   Download,
   Link as LinkIcon,
   Loader,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import {
   type ExportFormat,
   FORMAT_META,

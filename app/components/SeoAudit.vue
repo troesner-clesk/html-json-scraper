@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Loader, RotateCw, Search, X } from 'lucide-vue-next'
+import { Check, Loader, RotateCw, Search, X } from '@lucide/vue'
 
 interface SeoAuditResult {
   url: string

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronUp, FolderOpen } from 'lucide-vue-next'
+import { ChevronDown, ChevronUp, FolderOpen } from '@lucide/vue'
 
 interface OutputFile {
   name: string

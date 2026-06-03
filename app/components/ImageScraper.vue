@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Check, Image, Loader } from 'lucide-vue-next'
+import { AlertTriangle, Check, Image, Loader } from '@lucide/vue'
 
 interface ImageResult {
   src: string

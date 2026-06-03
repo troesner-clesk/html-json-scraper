@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, Loader, Terminal, Trash2, X } from 'lucide-vue-next'
+import { ChevronRight, Loader, Terminal, Trash2, X } from '@lucide/vue'
 import type { TabId } from '../composables/useLogStore'
 import { useLogStore } from '../composables/useLogStore'
 

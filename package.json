@@ -15,10 +15,10 @@
     "format": "biome format --fix ."
   },
   "dependencies": {
+    "@lucide/vue": "^1.17.0",
     "@types/d3-force": "^3.0.10",
     "cheerio": "^1.1.2",
     "d3-force": "^3.0.0",
-    "lucide-vue-next": "^1.0.0",
     "nuxt": "^4.2.2",
     "papaparse": "^5.5.3",
     "puppeteer": "^24.35.0",

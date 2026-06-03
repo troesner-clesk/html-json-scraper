@@ -3,7 +3,7 @@ import {
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
   RefreshCw,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import type {
   GraphStats,
   LabelMode,

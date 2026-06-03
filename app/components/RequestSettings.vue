@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronRight, X } from 'lucide-vue-next'
+import { ChevronDown, ChevronRight, X } from '@lucide/vue'
 
 interface RequestSettings {
   timeout: number
