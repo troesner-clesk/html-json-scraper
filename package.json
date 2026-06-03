@@ -19,11 +19,11 @@
     "@types/d3-force": "^3.0.10",
     "cheerio": "^1.2.0",
     "d3-force": "^3.0.0",
-    "nuxt": "^4.2.2",
+    "nuxt": "^4.4.7",
     "papaparse": "^5.5.3",
     "puppeteer": "^24.35.0",
     "vue": "^3.5.35",
-    "vue-router": "^4.6.4"
+    "vue-router": "^5.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
