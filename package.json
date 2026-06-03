@@ -21,7 +21,7 @@
     "d3-force": "^3.0.0",
     "nuxt": "^4.4.7",
     "papaparse": "^5.5.3",
-    "puppeteer": "^24.35.0",
+    "puppeteer": "^25.1.0",
     "vue": "^3.5.35",
     "vue-router": "^5.1.0"
   },
