@@ -1,5 +1,19 @@
 <script setup lang="ts">
-import { AlertTriangle, Check, Link as LinkIcon, Loader } from 'lucide-vue-next'
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Download,
+  Link as LinkIcon,
+  Loader,
+} from 'lucide-vue-next'
+import {
+  type ExportFormat,
+  FORMAT_META,
+  selectExportRows,
+  serializeExportRows,
+} from '../utils/link-export'
 
 interface BrokenLinkResult {
   sourceUrl: string
@@ -63,12 +77,31 @@ const typeFilter = ref<'all' | 'internal' | 'external'>('all')
 const copySuccess = ref(false)
 const { toggleSort, sortIndicator, sortedData, resetSort } = useTableSort()
 
+// Export menu state
+const exportMenuOpen = ref(false)
+const exportInternal = ref(true)
+const exportExternal = ref(true)
+const exportOnlyBroken = ref(false)
+
 const brokenCount = computed(
   () => results.value.filter((r) => r.isBroken).length,
 )
 const okCount = computed(() => results.value.filter((r) => !r.isBroken).length)
-const internalCount = computed(() => results.value.filter((r) => r.isInternal).length)
-const externalCount = computed(() => results.value.filter((r) => !r.isInternal).length)
+const internalCount = computed(
+  () => results.value.filter((r) => r.isInternal).length,
+)
+const externalCount = computed(
+  () => results.value.filter((r) => !r.isInternal).length,
+)
+
+const selectedExportRows = computed(() =>
+  selectExportRows(results.value, {
+    internal: exportInternal.value,
+    external: exportExternal.value,
+    onlyBroken: exportOnlyBroken.value,
+  }),
+)
+const selectedExportCount = computed(() => selectedExportRows.value.length)
 
 const availableDomainCount = computed(() => {
   const hostnames = new Set<string>()
@@ -257,33 +290,18 @@ function stopCheck() {
   addLog('Stopping...', 'info')
 }
 
-async function exportBrokenLinks() {
-  const broken = results.value.filter((r) => r.isBroken)
-  if (broken.length === 0) return
+function toggleExportMenu() {
+  exportMenuOpen.value = !exportMenuOpen.value
+}
 
-  const header = [
-    'Target URL',
-    'Status',
-    'Status Text',
-    'Source URL',
-    'Domain Status',
-    'Domain Error',
-  ].join('\t')
-  const rows = broken.map((r) =>
-    [
-      r.targetUrl,
-      r.status,
-      r.statusText,
-      r.sourceUrl,
-      r.domainStatus ?? '',
-      r.domainError ?? '',
-    ].join('\t'),
-  )
-  const text = [header, ...rows].join('\n')
+async function copySelection() {
+  const rows = selectedExportRows.value
+  if (rows.length === 0) return
+  const text = serializeExportRows(rows, 'tsv')
   try {
     await navigator.clipboard.writeText(text)
     copySuccess.value = true
-    addLog(`${broken.length} broken link(s) copied to clipboard`, 'success')
+    addLog(`${rows.length} row(s) copied to clipboard`, 'success')
     setTimeout(() => {
       copySuccess.value = false
     }, 2000)
@@ -291,6 +309,56 @@ async function exportBrokenLinks() {
     addLog('Failed to copy to clipboard', 'error')
   }
 }
+
+function exportHost(): string {
+  const first = results.value[0]
+  const src = first?.sourceUrl || first?.targetUrl
+  if (!src) return 'links'
+  try {
+    return new URL(src).hostname.replace(/^www\./, '')
+  } catch {
+    return 'links'
+  }
+}
+
+function downloadSelection(format: ExportFormat) {
+  const rows = selectedExportRows.value
+  if (rows.length === 0) return
+  const content = serializeExportRows(rows, format)
+  const { mime, ext } = FORMAT_META[format]
+  const blob = new Blob([content], { type: `${mime};charset=utf-8` })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `link-check-${exportHost()}.${ext}`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  addLog(`Exported ${rows.length} row(s) as ${ext.toUpperCase()}`, 'success')
+  exportMenuOpen.value = false
+}
+
+function handleExportOutsideClick(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  if (!target.closest('.export-menu')) {
+    exportMenuOpen.value = false
+  }
+}
+
+function handleExportEscape(e: KeyboardEvent) {
+  if (e.key === 'Escape') exportMenuOpen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleExportOutsideClick)
+  document.addEventListener('keydown', handleExportEscape)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleExportOutsideClick)
+  document.removeEventListener('keydown', handleExportEscape)
+})
 
 function truncateUrl(url: string, max = 60): string {
   if (url.length <= max) return url
@@ -419,14 +487,63 @@ defineExpose({ isRunning })
             <option value="available">Available domains only</option>
             <option value="problems">All problems (broken + unregistered)</option>
           </select>
-          <button
-            class="btn-export"
-            @click="exportBrokenLinks"
-            :disabled="brokenCount === 0"
-          >
-            <template v-if="copySuccess"><Check :size="12" /> Copied!</template>
-            <template v-else><AlertTriangle :size="12" /> Export Broken</template>
-          </button>
+          <div class="export-menu">
+            <button
+              class="btn-export"
+              @click.stop="toggleExportMenu"
+              :disabled="results.length === 0"
+            >
+              <Download :size="12" /> Export
+              <ChevronUp v-if="exportMenuOpen" :size="12" />
+              <ChevronDown v-else :size="12" />
+            </button>
+
+            <div v-if="exportMenuOpen" class="export-dropdown" @click.stop>
+              <div class="export-dropdown-header">What to export?</div>
+              <div class="export-scope">
+                <label class="export-check">
+                  <input type="checkbox" v-model="exportInternal">
+                  Internal <span class="export-count">({{ internalCount }})</span>
+                </label>
+                <label class="export-check">
+                  <input type="checkbox" v-model="exportExternal">
+                  External <span class="export-count">({{ externalCount }})</span>
+                </label>
+                <label class="export-check export-filter">
+                  <input type="checkbox" v-model="exportOnlyBroken">
+                  Only broken <span class="export-count">({{ brokenCount }})</span>
+                </label>
+              </div>
+              <div class="export-selected-count">
+                {{ selectedExportCount }} row(s) selected
+              </div>
+              <div class="export-actions">
+                <button
+                  class="btn-copy"
+                  :disabled="selectedExportCount === 0"
+                  @click="copySelection"
+                >
+                  <template v-if="copySuccess"><Check :size="12" /> Copied!</template>
+                  <template v-else><Copy :size="12" /> Copy</template>
+                </button>
+                <div class="export-formats">
+                  <span class="export-formats-label">Download:</span>
+                  <button
+                    :disabled="selectedExportCount === 0"
+                    @click="downloadSelection('csv')"
+                  >CSV</button>
+                  <button
+                    :disabled="selectedExportCount === 0"
+                    @click="downloadSelection('json')"
+                  >JSON</button>
+                  <button
+                    :disabled="selectedExportCount === 0"
+                    @click="downloadSelection('txt')"
+                  >TXT</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -808,6 +925,11 @@ defineExpose({ isRunning })
   border-color: var(--accent);
 }
 
+.export-menu {
+  position: relative;
+  display: inline-block;
+}
+
 .btn-export {
   padding: 6px 12px;
   background: var(--bg-tertiary);
@@ -822,11 +944,138 @@ defineExpose({ isRunning })
 }
 
 .btn-export:hover:not(:disabled) {
-  border-color: var(--warning);
-  color: var(--warning);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .btn-export:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.export-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 240px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.export-dropdown-header {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.export-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.export-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.export-check input {
+  cursor: pointer;
+}
+
+.export-filter {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--bg-tertiary);
+}
+
+.export-count {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.export-selected-count {
+  padding: 0 12px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.export-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.btn-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-copy:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-copy:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.export-formats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.export-formats-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+
+.export-formats button {
+  flex: 1;
+  padding: 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.export-formats button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.export-formats button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
