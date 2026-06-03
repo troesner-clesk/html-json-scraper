@@ -1,19 +1,7 @@
-import { spawn } from 'node:child_process'
-import { platform } from 'node:os'
-import { resolve } from 'node:path'
-import { defineEventHandler, getQuery } from 'h3'
+import { resolve, sep } from 'node:path'
+import { createError, defineEventHandler, getQuery } from 'h3'
+import { openInFileManager } from '../utils/open-path'
 import { OUTPUT_ROOT } from '../utils/path-guard'
-
-function getOpenCommand(): string {
-  switch (platform()) {
-    case 'darwin':
-      return 'open'
-    case 'win32':
-      return 'explorer'
-    default:
-      return 'xdg-open'
-  }
-}
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -26,12 +14,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Resolve path and validate it's within the output directory
+  // Resolve path and validate it's within the output directory.
+  // Use the platform path separator so the check also holds on Windows.
   const resolvedPath = resolve(inputPath)
 
   if (
-    !resolvedPath.startsWith(`${OUTPUT_ROOT}/`) &&
-    resolvedPath !== OUTPUT_ROOT
+    resolvedPath !== OUTPUT_ROOT &&
+    !resolvedPath.startsWith(`${OUTPUT_ROOT}${sep}`)
   ) {
     throw createError({
       statusCode: 403,
@@ -39,30 +28,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return new Promise((resolvePromise, reject) => {
-    // Use spawn with arguments array to prevent command injection
-    const child = spawn(getOpenCommand(), [resolvedPath], { stdio: 'ignore' })
-
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolvePromise({ success: true })
-      } else {
-        reject(
-          createError({
-            statusCode: 500,
-            message: 'Failed to open folder',
-          }),
-        )
-      }
+  try {
+    await openInFileManager(resolvedPath)
+    return { success: true }
+  } catch {
+    throw createError({
+      statusCode: 500,
+      message: 'Failed to open folder',
     })
-
-    child.on('error', () => {
-      reject(
-        createError({
-          statusCode: 500,
-          message: 'Failed to open folder',
-        }),
-      )
-    })
-  })
+  }
 })

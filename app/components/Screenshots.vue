@@ -148,6 +148,7 @@ async function takeScreenshots() {
     )
     if (!isCancelled.value) {
       addLog('Done!', 'success')
+      toastSavedToOutput(successCount)
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Screenshot error'

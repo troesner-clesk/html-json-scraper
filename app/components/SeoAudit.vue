@@ -283,12 +283,14 @@ async function runAudit() {
               results: results.value,
               format: 'both',
               mode: 'seo',
+              sourceUrls: parsedUrls.value,
             },
           },
         )
         savedFiles.value = saveResponse.files || []
         if (savedFiles.value.length > 0) {
           addLog(`${savedFiles.value.length} file(s) saved`, 'success')
+          toastSavedToOutput(savedFiles.value.length)
         }
       } catch (e) {
         addLog('Failed to save results', 'error')

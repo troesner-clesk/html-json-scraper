@@ -171,6 +171,7 @@ async function scrapeImages() {
 
     if (!isCancelled.value) {
       addLog(`Done! ${stats.value.totalImages} images found`, 'success')
+      if (download.value) toastSavedToOutput(stats.value.downloaded)
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Scraping error'

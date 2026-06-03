@@ -461,10 +461,16 @@ Save results as files.
 {
   results: Record<string, unknown>[]
   format: 'csv' | 'json' | 'both'
-  mode: 'html' | 'links'
+  mode: 'html' | 'links' | 'inbound-links' | 'seo'
   baseOutputDir?: string            // Reuse existing output directory
+  sourceUrls?: string[]             // The URL(s) that were checked
 }
 ```
+
+**Filename:** `<timestamp>_<mode>.<ext>`. When `sourceUrls` contains exactly one
+distinct URL, it is folded in as `<timestamp>_<url>_<mode>.<ext>` (a bare domain
+yields the host without `www.`, a deeper URL yields host + path). The timestamp
+stays first so files sort chronologically.
 
 **Response:**
 ```typescript
@@ -485,9 +491,11 @@ Clear the entire output folder.
 
 ### POST /api/open-output
 
-Open the output folder in the system file manager.
+Open the output folder in the system file manager. Creates the folder first if
+it does not exist yet.
 
-**Response:** `{ ok: boolean }`
+**Response:** `{ success: boolean }` (throws 500 if the OS open command fails,
+e.g. on a headless server)
 
 ### GET /api/get-output-dir
 

@@ -18,11 +18,48 @@ interface SaveResultsRequest {
   format: 'csv' | 'json' | 'both'
   mode: 'html' | 'links' | 'inbound-links' | 'seo'
   baseOutputDir?: string
+  // The URL(s) the user checked. When exactly one distinct URL was checked,
+  // it is folded into the filename so exports are identifiable.
+  sourceUrls?: string[]
 }
 
 export function getTimestamp(): string {
   const now = new Date()
   return now.toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19)
+}
+
+/**
+ * Build a filename-safe label from the checked URL(s).
+ * Returns the label only when exactly one distinct URL was checked:
+ * a bare domain yields the host (without leading "www."), a deeper URL
+ * yields host + path. Returns null for zero or multiple URLs, so the
+ * caller can fall back to the timestamp-only filename.
+ */
+export function deriveUrlLabel(urls: string[] | undefined): string | null {
+  const distinct = [
+    ...new Set(
+      (urls ?? [])
+        .filter((u): u is string => typeof u === 'string')
+        .map((u) => u.trim())
+        .filter((u) => u.length > 0),
+    ),
+  ]
+  if (distinct.length !== 1) return null
+
+  try {
+    const parsed = new URL(distinct[0] as string)
+    const host = parsed.hostname.replace(/^www\./i, '')
+    const path = parsed.pathname.replace(/\/+$/, '')
+    const raw = path ? `${host}${path}` : host
+    const label = raw
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 100)
+    return label || null
+  } catch {
+    return null
+  }
 }
 
 export function sanitizeFilename(url: string): string {
@@ -69,7 +106,12 @@ export default defineEventHandler(async (event) => {
         : join(OUTPUT_ROOT, 'scraper')
   const baseOutputDir = assertWithinOutput(body.baseOutputDir || defaultDir)
   const timestamp = getTimestamp()
-  const baseFilename = `${timestamp}_${body.mode}`
+  // Timestamp stays first (for chronological sorting). When a single URL was
+  // checked, fold it in between timestamp and mode: <ts>_<url>_<mode>.
+  const urlLabel = deriveUrlLabel(body.sourceUrls)
+  const baseFilename = urlLabel
+    ? `${timestamp}_${urlLabel}_${body.mode}`
+    : `${timestamp}_${body.mode}`
 
   const savedFiles: string[] = []
 

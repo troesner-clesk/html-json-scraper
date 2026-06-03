@@ -264,10 +264,12 @@ async function saveResults() {
         results: results.value,
         format: saveFormat.value,
         mode: 'inbound-links',
+        sourceUrls: parsedTargets.value,
       },
     })
     savedFiles.value = response.files
     addLog(`${response.files.length} file(s) saved`, 'success')
+    toastSavedToOutput(response.files.length)
   } catch (e) {
     addLog(
       `Save failed: ${e instanceof Error ? e.message : 'unknown'}`,

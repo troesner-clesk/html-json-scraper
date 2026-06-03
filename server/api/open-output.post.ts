@@ -1,20 +1,21 @@
-import { spawn } from 'node:child_process'
-import { platform } from 'node:os'
-import { defineEventHandler } from 'h3'
+import { mkdir } from 'node:fs/promises'
+import { createError, defineEventHandler } from 'h3'
+import { openInFileManager } from '../utils/open-path'
 import { OUTPUT_ROOT } from '../utils/path-guard'
 
-function getOpenCommand(): string {
-  switch (platform()) {
-    case 'darwin':
-      return 'open'
-    case 'win32':
-      return 'explorer'
-    default:
-      return 'xdg-open'
-  }
-}
-
 export default defineEventHandler(async () => {
-  spawn(getOpenCommand(), [OUTPUT_ROOT], { stdio: 'ignore' })
-  return { ok: true }
+  // Ensure the folder exists; otherwise the OS open command fails silently.
+  await mkdir(OUTPUT_ROOT, { recursive: true })
+
+  try {
+    await openInFileManager(OUTPUT_ROOT)
+    return { success: true }
+  } catch (error) {
+    throw createError({
+      statusCode: 500,
+      message: `Failed to open output folder: ${
+        error instanceof Error ? error.message : 'unknown error'
+      }`,
+    })
+  }
 })

@@ -101,7 +101,13 @@ const linkResults = ref<LinkResult[]>([])
 const savedFiles = ref<string[]>([])
 const errorMessage = ref<string | null>(null)
 const activeTab = ref<
-  'scraper' | 'seo' | 'screenshots' | 'images' | 'sitemap' | 'broken-links' | 'silo'
+  | 'scraper'
+  | 'seo'
+  | 'screenshots'
+  | 'images'
+  | 'sitemap'
+  | 'broken-links'
+  | 'silo'
 >('scraper')
 const showClearConfirm = ref(false)
 const isClearing = ref(false)
@@ -126,12 +132,10 @@ function isOperationRunning(): boolean {
     return screenshotsRef.value?.isRunning ?? false
   if (activeTab.value === 'images')
     return imageScraperRef.value?.isRunning ?? false
-  if (activeTab.value === 'sitemap')
-    return sitemapRef.value?.isRunning ?? false
+  if (activeTab.value === 'sitemap') return sitemapRef.value?.isRunning ?? false
   if (activeTab.value === 'broken-links')
     return brokenLinksRef.value?.isRunning ?? false
-  if (activeTab.value === 'silo')
-    return siloRef.value?.isRunning ?? false
+  if (activeTab.value === 'silo') return siloRef.value?.isRunning ?? false
   return false
 }
 
@@ -382,11 +386,13 @@ async function saveResults(results: unknown[]) {
       results,
       format: settings.value.saveFormat,
       mode: mode.value,
+      sourceUrls: parsedUrls.value,
     },
   })
 
   savedFiles.value = response.files
   addLog(`${response.files.length} file(s) saved`, 'success')
+  toastSavedToOutput(response.files.length)
 }
 
 function stopScraping() {
@@ -401,8 +407,13 @@ function stopScraping() {
 async function openOutputFolder() {
   try {
     await $fetch('/api/open-output', { method: 'POST' })
-  } catch {
-    // ignore
+  } catch (e) {
+    addLog(
+      `Could not open output folder: ${
+        e instanceof Error ? e.message : 'unknown error'
+      }`,
+      'error',
+    )
   }
 }
 
@@ -621,8 +632,17 @@ async function clearOutputFolder() {
       <InboundLinkAnalyzer ref="siloRef" />
     </main>
 
-    <!-- Global Log Drawer -->
-    <LogDrawer />
+    <!-- Global Log Drawer: client-only — its open/width state lives in
+         localStorage, so SSR-rendering it causes a hydration mismatch that
+         leaves the toggle button stuck mid-screen on load (see #28). -->
+    <ClientOnly>
+      <LogDrawer />
+    </ClientOnly>
+
+    <!-- Global toast notifications (e.g. "saved to output folder") -->
+    <ClientOnly>
+      <Toaster />
+    </ClientOnly>
 
     <!-- Tab Switch Warning Modal -->
     <div v-if="showTabSwitchWarning" class="modal-overlay" @click.self="cancelTabSwitch">

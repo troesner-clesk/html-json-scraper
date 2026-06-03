@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getTimestamp, sanitizeFilename } from '../save-results.post'
+import {
+  deriveUrlLabel,
+  getTimestamp,
+  sanitizeFilename,
+} from '../save-results.post'
 
 describe('sanitizeFilename', () => {
   it('strips protocol and converts URL to filename', () => {
@@ -68,6 +72,71 @@ describe('sanitizeFilename', () => {
   it('handles URL with special characters in path', () => {
     const result = sanitizeFilename('https://example.com/path/to/file%20name')
     expect(result).toBe('example.com_path_to_file_20name')
+  })
+})
+
+describe('deriveUrlLabel', () => {
+  it('uses the bare domain for a single root URL (strips www + trailing slash)', () => {
+    expect(deriveUrlLabel(['https://www.fensterhandel.de/'])).toBe(
+      'fensterhandel.de',
+    )
+  })
+
+  it('keeps the domain without www unchanged', () => {
+    expect(deriveUrlLabel(['https://fensterhandel.de/'])).toBe(
+      'fensterhandel.de',
+    )
+  })
+
+  it('uses host + path for a single deep URL', () => {
+    expect(
+      deriveUrlLabel(['https://www.fensterhandel.de/fenster/kunststoff']),
+    ).toBe('fensterhandel.de_fenster_kunststoff')
+  })
+
+  it('preserves non-www subdomains', () => {
+    expect(deriveUrlLabel(['https://shop.example.com/'])).toBe(
+      'shop.example.com',
+    )
+  })
+
+  it('strips a trailing slash from the path', () => {
+    expect(deriveUrlLabel(['https://example.com/page/'])).toBe(
+      'example.com_page',
+    )
+  })
+
+  it('ignores port, query and fragment', () => {
+    expect(deriveUrlLabel(['https://example.com:8080/path?q=1#x'])).toBe(
+      'example.com_path',
+    )
+  })
+
+  it('treats duplicates of the same URL as a single input', () => {
+    expect(deriveUrlLabel(['https://www.x.de/', 'https://www.x.de/'])).toBe(
+      'x.de',
+    )
+  })
+
+  it('returns null for multiple distinct URLs', () => {
+    expect(deriveUrlLabel(['https://a.com/', 'https://b.com/'])).toBeNull()
+  })
+
+  it('returns null for an empty list, undefined, or blank entries', () => {
+    expect(deriveUrlLabel([])).toBeNull()
+    expect(deriveUrlLabel(undefined)).toBeNull()
+    expect(deriveUrlLabel(['  ', ''])).toBeNull()
+  })
+
+  it('returns null for an invalid single URL', () => {
+    expect(deriveUrlLabel(['not a url'])).toBeNull()
+  })
+
+  it('caps the label at 100 characters', () => {
+    const longPath = `/${'abcdefghij'.repeat(30)}`
+    const result = deriveUrlLabel([`https://example.com${longPath}`])
+    expect(result).not.toBeNull()
+    expect((result as string).length).toBeLessThanOrEqual(100)
   })
 })
 
