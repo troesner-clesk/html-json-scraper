@@ -17,18 +17,18 @@
   "dependencies": {
     "@lucide/vue": "^1.17.0",
     "@types/d3-force": "^3.0.10",
-    "cheerio": "^1.1.2",
+    "cheerio": "^1.2.0",
     "d3-force": "^3.0.0",
     "nuxt": "^4.2.2",
     "papaparse": "^5.5.3",
     "puppeteer": "^24.35.0",
-    "vue": "^3.5.27",
+    "vue": "^3.5.35",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.9",
-    "@types/node": "^25.0.9",
+    "@biomejs/biome": "^2.4.16",
+    "@types/node": "^25.9.1",
     "@types/papaparse": "^5.5.2",
-    "vitest": "^4.1.1"
+    "vitest": "^4.1.8"
   }
 }
